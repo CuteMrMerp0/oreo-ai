@@ -1,9 +1,13 @@
 # Welcome!
-If you don't know what to do, just open index.html. It should explain it's self.
+Oreo AI is a locally-powered AI system made in Javascript.
+To try it, just open "index.html".
 
-Oreo AI is a locally-powered AI system that uses Markov chains to see how words fit with each other. Look in "how-it-works" to see how it works.
+## 
+Look in the "how-it-works" folder for a visual guide to how this works.
+
 
 ## API (beta)
+The API *may not work!!!*
 In the "api" folder, you can add the Javascript file to your website to use it.
 
 ### Methods:
