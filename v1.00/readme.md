@@ -2,13 +2,13 @@
 Oreo AI is a locally-powered AI system made in Javascript.
 To try it, just open "index.html".
 
+---
+
 ## Warning!
 If you just open the HTML file, the sample texts won't load. You can copy + paste them from the text file.
 
 ## How it works
 Look in the "how-it-works" folder for a visual guide to how this works.
-
----
 
 ## API (beta)
 The API *may not work!!!*
