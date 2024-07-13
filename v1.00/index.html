@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Oreo AI v1.00</title>
+</head>
+<body>
+    <style>
+        body{
+            padding: 0px;
+            margin: 0px;
+            background-color: rgb(34, 42, 40);
+            overflow-x: hidden;
+        }
+        textarea{
+            width: calc(100% - 52.5px);
+            resize: none;
+            height: 200px;
+            margin: 10px;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 22px;
+            background-color: darkslategray;
+        }
+        input{
+            resize: none;
+            margin: 10px;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 22px;
+            background-color: darkslategray;
+        }
+        textarea::placeholder input::placeholder{
+            color: black;
+        }
+        button{
+            margin-top: 10px;
+            margin-left: 10px;
+            margin-right: -2px;
+            margin-bottom: 10px;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 15px;
+            font-size: 22px;
+            background-color: darkslategray;
+            cursor: pointer;
+        }
+        h1{
+            padding-left: 10px;
+            padding-right: 10px;
+            font-size: 46px;
+        }
+        h2{
+            padding-left: 10px;
+            padding-right: 10px;
+            font-size: 34px;
+        }
+        body{
+            font-family: sans-serif;
+            color: white;
+            perspective: 1000px;
+        }
+        dialog{
+            background-color: red;
+            color: white;
+        }
+        @keyframes toast {
+            0%{
+                top: -40px;
+                opacity: 0;
+            }
+            20%{
+                top: 0px;
+                opacity: 1;
+            }
+            80%{
+                top: 0px;
+                opacity: 1;
+            }
+            100%{
+                top: -40px;
+                opacity: 0;
+            }
+        }
+        #alert{
+            position: fixed;
+            background-color: lime;
+            color: black;
+            font-size: 44px;
+            width: 90%;
+            margin-left: 5%;
+            margin-right: 5%;
+            top: -100%;
+            text-align: center;
+            z-index: 99;
+            opacity: 0;
+        }
+        .out{
+            text-align: center;
+            font-size: 62px;
+        }
+        .claimed{
+            color: red;
+            font-size: 42px;
+        }
+        @keyframes flip{
+            0%{
+                filter: blur(0px);
+                transform: rotateY(0deg) scale(1);
+                animation-timing-function: ease-in;
+            }
+            50%{
+                filter: blur(8px);
+                transform: rotateY(-90deg) scale(0.5);
+                animation-timing-function: ease-in;
+            }
+            50.0001%{
+                filter: blur(8px);
+                transform: rotateY(90deg) scale(0.5);
+                animation-timing-function: ease-out;
+            }
+            100%{
+                filter: blur(0px);
+                transform: rotateY(0deg) scale(1);
+                animation-timing-function: ease-out;
+            }
+        }
+    </style>
+    <h1>Oreo AI</h1>
+    <h2>Paste your data here</h2>
+    <textarea id="uData" placeholder="Your data should be seperated by new lines"></textarea>
+    <h2>Or try one of these samples</h2>
+    <button onclick="loadSample('motivation.txt')">Motivational speeches (121 lines)</button>
+    <button onclick="loadSample('news.txt')">News article (143 lines)</button>
+    <button onclick="loadSample('sayings.txt')">Popular sayings (180 lines)</button>
+    <button onclick="loadSample('prompts.txt')">Writing prompts (238 lines)</button>
+    <button onclick="loadSample('owt.txt')">Open Web Text Dataset <u onclick="alert('This contains a small amount of data from the Web Text dataset. This dataset was made from text from the web.\n\nYou may recieve a bad word or some incorrect characters. Most of the bad words have been filtered by \'bad-words.js\'.\n\nYour web browser also might crash because of the file size. Thank you for understanding!')">BE WARNED!</u> (999+ lines)</button>
+    <h2>Enter your prompt</h2>
+<input type="text" id="prompt" placeholder="Enter your prompt">
+
+    <br><br><br>
+    <h1>Result</h1>
+    <button onclick="preGenerate()">Generate</button>
+    <div class="out" id="output"></div>
+    <dialog id="errDialog"></dialog>
+    <div id="alert">Loaded!</div>
+    <script>
+        let uquery
+        let stacks = 0
+        const alphanumericRegex = /^[0-9a-zA-Z]+$/;
+        function comp(ms){
+            document.getElementById('alert').innerHTML = ms
+            document.getElementById('alert').style.animation = "toast 5s"
+            setTimeout(()=>{
+                document.getElementById('alert').style.animation = "none"
+            }, 5000)
+        }
+
+        function loadSample(pat){
+            fetch('samples/'+pat).then(p => {
+                return p.text()
+        })
+        .then(reee => {
+            document.getElementById('uData').value = reee
+                comp("Successfully loaded sample!")
+        })
+        }
+
+
+        function preGenerate() {
+    uquery = document.getElementById('uData').value.split('\n').map(line => line.trim());
+    const prompt = document.getElementById('prompt').value.trim();
+    generateText(uquery, prompt);
+    stacks = 0;
+}
+
+
+
+        //AI algorithm starts here
+        function makeVisibleError(er){
+            document.getElementById("errDialog").innerHTML = er
+            document.getElementById("errDialog").showModal();
+        }
+
+
+        const markovChain = {};
+
+function buildMarkovChain(data) {
+    data.forEach(sentence => {
+        const tokens = sentence.split(' ');
+        for (let i = 0; i < tokens.length - 2; i++) {
+            const wordPair = tokens[i] + ' ' + tokens[i + 1];
+            const nextWord = tokens[i + 2];
+            if (!markovChain[wordPair]) {
+                markovChain[wordPair] = [];
+            }
+            markovChain[wordPair].push(nextWord);
+        }
+    });
+}
+
+
+
+        function getRandomElement(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function animateResult(dta){
+            document.getElementById('output').style.animation = "flip 1s ease-in-out";
+            setTimeout(()=>{
+                document.getElementById('output').innerHTML = dta;
+                setTimeout(()=>{
+                document.getElementById('output').style.animation = "none";
+            }, 500)
+            }, 500)
+        }
+
+
+
+
+
+
+        //begin
+        function generateText(inp, prompt) {
+    buildMarkovChain(inp);
+
+    let currentPair;
+    let result = [];
+    prompt = prompt.split(" ")[prompt.split(" ").length-1]
+    if (prompt) {
+        const promptWords = prompt.split(' ');
+        if (promptWords.length >= 2) {
+            currentPair = promptWords.slice(0, 2).join(' ');
+            result = promptWords.slice(0); // Copy the prompt words to result
+        } else {
+            currentPair = getRandomElement(inp).split(' ').slice(0, 2).join(' ');
+            result.push(...promptWords);
+            result.push(...currentPair.split(' ').slice(promptWords.length));
+        }
+
+        // Check if the word pair exists in the Markov chain
+        if (!markovChain[currentPair]) {
+            currentPair = getRandomElement(inp).split(' ').slice(0, 2).join(' ');
+            result = currentPair.split(' ');
+        }
+    } else {
+        currentPair = getRandomElement(inp).split(' ').slice(0, 2).join(' ');
+        result.push(...currentPair.split(' '));
+    }
+
+    for (let i = 0; i < 50; i++) { // Generate up to 50 words
+        if (markovChain[currentPair]) {
+            const nextWord = getRandomElement(markovChain[currentPair]);
+            result.push(nextWord);
+            const newPair = currentPair.split(' ');
+            newPair.shift();
+            newPair.push(nextWord);
+            currentPair = newPair.join(' ');
+        } else {
+            break;
+        }
+    }
+
+    let generatedText = result.join(' ');
+
+    // Ensure uniqueness without recursive calls
+    for (let attempts = 0; attempts < 20; attempts++) {
+        if (uquery.indexOf(generatedText) === -1 || generateText.includes('*')) {
+            ff = generatedText.split(' ')
+            ff.splice(0, 1)
+            ff[0] = ff[0].charAt(0).toLowerCase() + ff[0].substring(1);
+            ff = ff.filter(item => alphanumericRegex.test(item));
+            ff.splice(0, 0, document.getElementById('prompt').value);
+            ff[0] = ff[0].charAt(0).toUpperCase() + ff[0].substring(1);;
+            console.log(ff)
+            animateResult(ff.join(' '));
+            return;
+        } else {
+            // Generate a new sequence
+            result = [];
+            currentPair = getRandomElement(inp).split(' ').slice(0, 2).join(' ');
+            result.push(...currentPair.split(' '));
+
+            for (let i = 0; i < 50; i++) {
+                if (markovChain[currentPair]) {
+                    const nextWord = getRandomElement(markovChain[currentPair]);
+                    result.push(nextWord);
+                    const newPair = currentPair.split(' ');
+                    newPair.shift();
+                    newPair.push(nextWord);
+                    currentPair = newPair.join(' ');
+                } else {
+                    break;
+                }
+            }
+
+            generatedText = result.join(' ');
+        }
+    }
+
+    animateResult("<br><div class=\"claimed\">Generated 20 results, none of them were original. Try adding more training data.</div>");
+}
+
+
+
+
+
+
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Markov Chain Text Generator with User Prompt</title>
+</head>
+<body>
+    <label for="prompt">Enter a starting word or phrase:</label>
+    <input type="text" id="prompt">
+    <button onclick="generateText()">Generate Text</button>
+    <pre id="output"></pre>
+
+    <script>
+        // Trainer array with sentences
+        const trainer = [
+            "The quick brown fox jumps over the lazy dog.",
+            "A journey of a thousand miles begins with a single step.",
+            "To be or not to be, that is the question.",
+            "All that glitters is not gold.",
+            "The best way to predict the future is to invent it.",
+            "Life is what happens when you're busy making other plans.",
+            "The only thing we have to fear is fear itself.",
+            "Do unto others as you would have them do unto you.",
+            "You miss 100 percent of the shots you don't take.",
+            "Actions speak louder than words."
+            //Put your training data here...
+        ];
+
+        let markovChain = {};
+
+        function buildMarkovChain(data) {
+            data.forEach(sentence => {
+                const tokens = sentence.split(' ');
+                for (let i = 0; i < tokens.length - 1; i++) {
+                    const word = tokens[i];
+                    const nextWord = tokens[i + 1].replace(/[\.,?!]/g, ""); // Remove punctuation
+                    if (!markovChain[word]) {
+                        markovChain[word] = [];
+                    }
+                    markovChain[word].push(nextWord);
+                }
+            });
+            console.log('Markov Chain:', markovChain); // For debugging
+        }
+
+        function getRandomElement(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function generateText() {
+            const prompt = document.getElementById('prompt').value.trim();
+            
+            if (!prompt) {
+                alert('Please enter a starting word or phrase.');
+                return;
+            }
+
+            if (!Object.keys(markovChain).length) {
+                buildMarkovChain(trainer);
+            }
+
+            let currentWord = prompt.split(' ')[0]; // Start with the first word of the prompt
+            let result = [currentWord];
+
+            for (let i = 0; i < 200; i++) { // Generate 200 words
+                if (markovChain[currentWord]) {
+                    currentWord = getRandomElement(markovChain[currentWord]);
+                    result.push(currentWord);
+                } else {
+                    // If currentWord has no transitions, pick a random starting word from the trainer
+                    currentWord = getRandomElement(trainer).split(' ')[0];
+                    result.push(currentWord);
+                }
+            }
+
+            document.getElementById('output').textContent = result.join(' ');
+        }
+    </script>
+</body>
+</html>
